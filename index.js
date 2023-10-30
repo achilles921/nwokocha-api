@@ -17,12 +17,10 @@ const appOrigins = [
   `http://localhost:${appPort}`,
   `http://${process.env.SERVER_IP}:${appPort}`,
 ];
-const provider = new ethers.WebSocketProvider(process.env.WEB_SOCKET_URL);
 const gasPrice = 3000000000;
 const gasLimit = 12000000;
 
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet)
+
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -56,6 +54,10 @@ app.post("/api/bet", async (req, res) => {
   }
 
   try {
+    const provider = new ethers.WebSocketProvider(process.env.WEB_SOCKET_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet)
+
     let tx_res;
     let betAmount = amount;
     if (amount > 0.21) {
@@ -104,6 +106,10 @@ app.get("/api/history", async (req, res) => {
   // });
   // const timePassed = parseInt(strTimePassed.substring(0, 2)) * 60 + parseInt(strTimePassed.substring(3));
   // const roundCount = parseInt(timePassed / 5) + 1;
+  const provider = new ethers.WebSocketProvider(process.env.WEB_SOCKET_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet)
+
   const roundLength = parseInt(await contract.getUserRoundsLength(wallet.address));
 
   const userRounds = await contract.getUserRounds(wallet.address, 0, roundLength);
