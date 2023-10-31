@@ -56,7 +56,7 @@ app.post("/api/bet", async (req, res) => {
   try {
     const provider = new ethers.WebSocketProvider(process.env.WEB_SOCKET_URL);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet)
+const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet);
 
     let tx_res;
     let betAmount = amount;
@@ -107,8 +107,8 @@ app.get("/api/history", async (req, res) => {
   // const timePassed = parseInt(strTimePassed.substring(0, 2)) * 60 + parseInt(strTimePassed.substring(3));
   // const roundCount = parseInt(timePassed / 5) + 1;
   const provider = new ethers.WebSocketProvider(process.env.WEB_SOCKET_URL);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet)
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet);
 
   const roundLength = parseInt(await contract.getUserRoundsLength(wallet.address));
 
@@ -119,10 +119,63 @@ const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet)
   console.log("---")
   console.log(epochList);
 
+  for (let i = roundList.length - 1; i >= roundList.length - 10; i--) {
+    const claimable = await contract.claimable(epochList[i], wallet.address);
+    if (claimable) {
+
+    }
+  }
+
   res.send({
     success: true,
   });
 });
+
+app.post("/api/claimall", async(req, res) => {
+  const provider = new ethers.WebSocketProvider(process.env.WEB_SOCKET_URL);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet);
+
+  try {
+    const roundLength = parseInt(await contract.getUserRoundsLength(wallet.address));
+  
+    const userRounds = await contract.getUserRounds(wallet.address, 0, roundLength);
+    const roundList = userRounds[1];
+    const epochList = userRounds[0];
+  
+    const epochs = [];
+    for (let i = roundList.length - 1; i >= roundList.length - 10; i--) {
+      const claimable = await contract.claimable(epochList[i], wallet.address);
+      if (claimable) {
+        epochs.push(parseInt(epochList[i]));
+      }
+    }
+
+    const tx_res = await contract.claim(epochs, {
+      gasPrice: gasPrice,
+      gasLimit: gasLimit
+    });
+
+    bet_res = await tx_res.wait(1);
+
+    if (epochs.length == 0) {
+      res.send({
+        success: false,
+        error: "Nothing to claim"
+      })
+    } else {
+      res.send({
+        success: true,
+        data: epochs
+      })
+    }
+  } catch(e) {
+    console.log(e);
+    res.send({
+      success: false,
+    });
+  }
+})
 
 process.on('unhandledRejection', (reason, promise) => {
   console.log(reason)
